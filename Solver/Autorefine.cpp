@@ -49,6 +49,11 @@
 #include <sys/sysctl.h>
 #endif
 
+#ifdef __LINUX__
+#include <fstream>
+#include <stdlib.h>
+#endif
+
 
 #include "SolverGlobal.h"
 
@@ -119,8 +124,28 @@ wxMemorySize portableGetFreeMemory() {
     wxMemorySize freeMemory;
     
 #ifdef __LINUX__
-    // TODO
-#elif __DARWIN__
+    // NOTE: unfortunatly, <sys/sysinfo.h> does not include the MemAvailable (only MemFree),
+    //       so we have to parse /proc/meminfo
+    std::ifstream inputStream("/proc/meminfo");
+    std::string keyword("MemAvailable:");
+    std::string suffix(" kB");
+    std::string line;
+    while (std::getline(inputStream, line)) {
+        if (line.substr(0, keyword.size()) == keyword) {
+            if (line.substr(line.size() - suffix.size(), suffix.size()) != suffix) {
+                    std::cerr << "ERROR: expected /proc/meminfo line to end with suffix '" << suffix
+                              << "', but obtained line: " << line << std::endl;
+                    break;
+            }
+            size_t idx = line.find_first_not_of(" ", keyword.size());
+            const std::string memAvail = line.substr(idx, line.size() - idx - suffix.size());
+            freeMemory = strtoul(memAvail.c_str(), NULL, 10);
+	    freeMemory *= 1024;
+            break;
+        }
+    }
+#else
+#ifdef __DARWIN__
     const char *key = "hw.memsize_usable";
     size_t size = sizeof(freeMemory);
     if (sysctlbyname(key, &freeMemory, &size, NULL, 0) != 0) {
@@ -128,6 +153,7 @@ wxMemorySize portableGetFreeMemory() {
     }
 #else
     freeMemory = wxGetFreeMemory();
+#endif
 #endif
     
     return freeMemory;
