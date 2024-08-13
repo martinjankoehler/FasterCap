@@ -37,11 +37,18 @@
 #include <float.h>
 // for _chdir()
 //#include <direct.h>
+
 // for openmp
 #include "omp.h"
 
 // for wxGetFreeMemory()
 #include <wx/utils.h> 
+
+#ifdef __DARWIN__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 
 #include "SolverGlobal.h"
 
@@ -105,6 +112,26 @@
 
 // init static vars
 unsigned long CAutoRefine::m_ulTempFileID = 1;
+
+// wxGetFreeMemory() replacement,
+// as it does not work on UNIX platforms (Linux, macOS, ...)
+wxMemorySize portableGetFreeMemory() {
+    wxMemorySize freeMemory;
+    
+#ifdef __LINUX__
+    // TODO
+#elif __DARWIN__
+    const char *key = "hw.memsize_usable";
+    size_t size = sizeof(freeMemory);
+    if (sysctlbyname(key, &freeMemory, &size, NULL, 0) != 0) {
+        printf("Failed to retrieve free memory using sysctlbyname(): %s\n", strerror(errno));
+    }
+#else
+    freeMemory = wxGetFreeMemory();
+#endif
+    
+    return freeMemory;
+}
 
 CAutoRefine::CAutoRefine()
 {
@@ -522,7 +549,7 @@ int CAutoRefine::AutoRefineLinks(CAutoRefGlobalVars globalVars)
 	mem_LinksTotal = mem_Potest + mem_pCharge;
 
 	// get available memory
-	mem_AvailVirtual = (wxLongLong) wxGetFreeMemory();
+	mem_AvailVirtual = (wxLongLong) portableGetFreeMemory();
 // debug
 //mem_AvailVirtual = 50000000;
 
@@ -1068,7 +1095,7 @@ void CAutoRefine::DumpMemoryInfo()
 	wxLongLong freeMem;
 
 	// get available memory
-	freeMem = (wxLongLong) wxGetFreeMemory();
+	freeMem = (wxLongLong) portableGetFreeMemory();
 
 	LogMsg("Available virtual memory: %lu kilobytes\n", (freeMem/G_KILOBYTE).ToLong());
 
