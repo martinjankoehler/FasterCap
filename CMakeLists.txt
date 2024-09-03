@@ -37,6 +37,24 @@ set(FASTFIELDSOLVERS_COMPILE_OPTIONS ${FASTFIELDSOLVERS_COMPILE_OPTIONS} -Wextra
 # -lm: link the math library
 # -lstdc++: link the standard c++ library (needed for headless)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fopenmp -lm -lstdc++")
+
+if (APPLE)
+    find_library(ACCELERATE_FRAMEWORK Accelerate)
+    if (ACCELERATE_FRAMEWORK)
+        message(STATUS "Accelerate framework found")
+        add_compile_definitions(LINALG_USE_ACCELERATE ACCELERATE_LAPACK_ILP64=1)
+        add_compile_options(-DACCELERATE_NEW_LAPACK)
+    else()
+        message(WARNING "Accelerate framework not found")
+    endif()
+endif()
+
+find_package(BLAS REQUIRED)
+include_directories(${BLAS_INCLUDE_DIRS})
+set(EXTRA_LIBS ${EXTRA_LIBS} ${BLAS_LIBRARIES})
+
+set(FASTFIELDSOLVERS_COMPILE_OPTIONS ${FASTFIELDSOLVERS_COMPILE_OPTIONS} -Wextra -Wall)
+
 # -s: strip all symbols from the executable
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -s")
 
