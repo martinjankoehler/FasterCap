@@ -33,7 +33,7 @@ jobs:
             cpu: x86_64
             os: ubuntu-22.04  # ubuntu-latest
             apt_build_deps: libomp-dev wx3.0-headers libwxbase3.0-dev
-            apt_install_deps: 'libc6 (>= 2.35), libwxbase3.0-0v5'
+            apt_install_deps: 'libc6 (>= 2.35), libwxbase3.0-0v5, libgomp1'
             apt_arch: amd64
             artifact_template: 'FasterCap-<<VERSION>>.linux-ubuntu22-amd64.tar.gz'
             c_compiler: gcc
